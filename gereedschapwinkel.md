@@ -12,6 +12,6 @@ Looking for the best deal? This is your chance! Get Product Dereedschapwinkel wi
 Don’t miss out—grab yours NOW before the deal ends!
 
 ## More Related Product 
-[doorzichtige paraplu](docs/doorzichtige-paraplu.md)
-[bloedsuikermeter](docs/bloedsuikermeter.md)
-[pittenzak action](docs/pittenzak-action.md)
+[doorzichtige paraplu](/doorzichtige-paraplu.md)
+[bloedsuikermeter](/bloedsuikermeter.md)
+[pittenzak action](/pittenzak-action.md)
