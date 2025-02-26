@@ -1,6 +1,5 @@
 # Dereedschapwinkel
 ![Dereedschapwinkel](https://raw.githubusercontent.com/andalub/andalub.github.io/refs/heads/main/hq720.jpg)
-![Continue]()
 [![Image](https://raw.githubusercontent.com/andalub/andalub.github.io/refs/heads/main/Click-Here-Button.png)](https://aliexpress.com)
 
 ## :fire: Limited Offer: FREE SHIPPING + Up to 70% OFF on Product Dereedschapwinkel :fire:
