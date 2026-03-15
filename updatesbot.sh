@@ -8,7 +8,6 @@ IPSET_WHITE="searchengine"
 LIST_URL="https://raw.githubusercontent.com/abiazizi/buynow/main/blockbots.txt"
 
 echo "install dependency"
-apt-get update -y >/dev/null 2>&1 || true
 apt-get install -y ipset curl >/dev/null 2>&1 || true
 
 echo "create ipset"
