@@ -7,11 +7,7 @@ IPSET_WHITE="searchengine"
 
 LIST_URL="https://raw.githubusercontent.com/abiazizi/buynow/main/blockbots.txt"
 
-IPSET_BLOCK="blockbots"
-IPSET_WHITE="whitelist"
-
 echo "install dependency"
-apt-get update -y >/dev/null 2>&1
 apt-get install -y ipset curl >/dev/null 2>&1 || true
 
 echo "create ipset"
@@ -20,9 +16,9 @@ ipset create $IPSET_WHITE hash:net -exist
 
 echo "download block list"
 
-curl -s "$LIST_URL" | grep -Ev '^(#|$)' | while read -r ip
+curl -s "$LIST_URL" | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]+)?' | while read -r ip
 do
-ipset add $IPSET_BLOCK "$ip" -exist 2>/dev/null
+    ipset add $IPSET_BLOCK "$ip" -exist
 done
 
 echo "blocklist loaded"
