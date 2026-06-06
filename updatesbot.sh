@@ -2,55 +2,64 @@
 
 set -e
 
-IPSET_BLOCK="blockbots"
-IPSET_WHITE="searchengine"
+# Install dependencies jika belum ada
+if ! command -v nft >/dev/null 2>&1; then
+    apt-get update
+    apt-get install -y nftables
+fi
 
-LIST_URL="https://raw.githubusercontent.com/abiazizi/buynow/main/blockbots.txt"
+if ! command -v curl >/dev/null 2>&1; then
+    apt-get update
+    apt-get install -y curl
+fi
 
-echo "install dependency"
-apt-get install -y ipset curl >/dev/null 2>&1 || true
+# Aktifkan nftables
+systemctl enable nftables >/dev/null 2>&1 || true
+systemctl start nftables >/dev/null 2>&1 || true
 
-echo "create ipset"
-ipset create $IPSET_BLOCK hash:net -exist
-ipset create $IPSET_WHITE hash:net -exist
+TABLE="inet filter"
+SETNAME="geo_block"
 
-echo "download block list"
+TMP=$(mktemp)
 
-curl -s "$LIST_URL" | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]+)?' | while read -r ip
-do
-    ipset add $IPSET_BLOCK "$ip" -exist
+echo "Downloading country lists..."
+
+for cc in cn vn jp; do
+    curl -fsSL "https://www.ipdeny.com/ipblocks/data/aggregated/${cc}-aggregated.zone" >> "$TMP"
 done
 
-echo "blocklist loaded"
+sort -u "$TMP" -o "$TMP"
 
-echo "add search engine whitelist"
+# Buat table jika belum ada
+nft list table inet filter >/dev/null 2>&1 || \
+    nft add table inet filter
 
-# Googlebot
-ipset add $IPSET_WHITE 66.249.64.0/19 -exist
-ipset add $IPSET_WHITE 64.233.160.0/19 -exist
-ipset add $IPSET_WHITE 72.14.192.0/18 -exist
-ipset add $IPSET_WHITE 74.125.0.0/16 -exist
+# Hapus set lama
+nft delete set inet filter $SETNAME 2>/dev/null || true
 
-# Bingbot
-ipset add $IPSET_WHITE 13.66.139.0/24 -exist
-ipset add $IPSET_WHITE 40.77.167.0/24 -exist
-ipset add $IPSET_WHITE 52.167.144.0/24 -exist
-ipset add $IPSET_WHITE 157.55.39.0/24 -exist
-ipset add $IPSET_WHITE 207.46.13.0/24 -exist
+# Buat set baru
+nft add set inet filter $SETNAME \
+'{ type ipv4_addr; flags interval; }'
 
-# DuckDuckBot
-ipset add $IPSET_WHITE 40.88.21.0/24 -exist
-ipset add $IPSET_WHITE 20.191.45.0/24 -exist
+# Import CIDR
+{
+    printf "add element inet filter %s {\n" "$SETNAME"
+    paste -sd, "$TMP"
+    printf "\n}\n"
+} | nft -f -
 
+# Buat chain input jika belum ada
+nft list chain inet filter input >/dev/null 2>&1 || \
+nft add chain inet filter input \
+'{ type filter hook input priority 0; policy accept; }'
 
-echo "iptables rules"
+# Tambah rule drop jika belum ada
+if ! nft list chain inet filter input | grep -q "@$SETNAME"; then
+    nft add rule inet filter input ip saddr @$SETNAME drop
+fi
 
-# whitelist dulu
-iptables -C INPUT -m set --match-set $IPSET_WHITE src -j ACCEPT 2>/dev/null || \
-iptables -I INPUT -m set --match-set $IPSET_WHITE src -j ACCEPT
+COUNT=$(wc -l < "$TMP")
 
-# baru block bot
-iptables -C INPUT -m set --match-set $IPSET_BLOCK src -j DROP 2>/dev/null || \
-iptables -I INPUT -m set --match-set $IPSET_BLOCK src -j DROP
+echo "Loaded $COUNT CIDR into $SETNAME"
 
-echo "done"
+rm -f "$TMP"
